@@ -41,7 +41,7 @@ class Settings(BaseSettings):
     
     # Retrieval settings
     TOP_K: int = 5
-    SIMILARITY_THRESHOLD: float = 0.3  # Lowered from 0.7 to be less restrictive
+    SIMILARITY_THRESHOLD: float = 0.35  # Lowered from 0.7 to be less restrictive
     USE_RERANKING: bool = True
     RERANK_MODEL: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
     

@@ -1,6 +1,8 @@
 "use client";
 import { useState, useRef, useEffect } from 'react';
 import { Heart, Send, Sparkles, Activity, Loader2 } from 'lucide-react';
+import VoiceRecorder from "./VoiceRecorder";
+
 
 type Message = {
   role: 'user' | 'assistant';
@@ -244,6 +246,36 @@ export default function HealthcareChat() {
                 disabled={isLoading}
               />
             </div>
+            {/* 🎤 Voice Recorder Button */}
+  {/* 🎤 Voice Recorder Button */}
+<VoiceRecorder
+  onTranscribed={(text, assistant) => {
+    // 👤 Add user's transcribed message to chat
+    const userMessage: Message = { role: "user", content: text };
+    setMessages((prev) => [...prev, userMessage]);
+
+    // 🤖 Append assistant reply from backend (already includes TTS)
+    if (assistant) {
+      const assistantMessage: Message = {
+        role: "assistant",
+        content: formatResponse(assistant),
+      };
+      setMessages((prev) => [...prev, assistantMessage]);
+    }
+
+    // ✅ Reset input/loading states
+    setIsLoading(false);
+    setInput("");
+  }}
+  onError={(err) => {
+    console.error("Voice error:", err);
+    setMessages((prev) => [
+      ...prev,
+      { role: "assistant", content: "🎤 Voice error: " + err },
+    ]);
+  }}
+/>
+
             <button
               onClick={handleSubmit}
               className="px-6 py-3.5 from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white rounded-2xl font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2 shadow-lg hover:shadow-emerald-500/25"
@@ -281,3 +313,5 @@ export default function HealthcareChat() {
     </div>
   );
 }
+
+

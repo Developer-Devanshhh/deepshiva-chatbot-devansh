@@ -23,7 +23,7 @@ class Gatekeeper:
         if settings.OPENAI_API_KEY:
             try:
                 self.llm = ChatOpenAI(
-                    model="gpt-4o-mini",
+                    model="gpt-3.5-turbo",
                     temperature=0,
                     openai_api_key=settings.OPENAI_API_KEY
                 )
@@ -117,7 +117,7 @@ class QueryOptimizer:
         if settings.OPENAI_API_KEY:
             try:
                 self.llm = ChatOpenAI(
-                    model="gpt-4o-mini",
+                    model="gpt-3.5-turbo",
                     temperature=0,
                     openai_api_key=settings.OPENAI_API_KEY
                 )
@@ -372,7 +372,7 @@ class Auditor:
         if settings.OPENAI_API_KEY:
             try:
                 self.llm = ChatOpenAI(
-                    model="gpt-4o-mini",
+                    model="gpt-3.5-turbo",
                     temperature=0,
                     openai_api_key=settings.OPENAI_API_KEY
                 )

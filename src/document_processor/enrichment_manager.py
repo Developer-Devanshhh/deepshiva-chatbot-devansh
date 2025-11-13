@@ -50,7 +50,7 @@ class EnrichmentManager:
         if self.use_enrichment:
             try:
                 self.llm = ChatOpenAI(
-                    model="gpt-4o-mini",
+                    model="gpt-3.5-turbo",
                     temperature=0,
                     openai_api_key=settings.OPENAI_API_KEY
                 ).with_structured_output(ChunkMetadata)

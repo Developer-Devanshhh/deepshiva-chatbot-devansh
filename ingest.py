@@ -4,7 +4,7 @@ from typing import Optional
 import argparse
 
 # Updated import path
-from src.config import settings
+from config.settings import settings
 from src.document_processor.loader import DocumentLoader
 from src.document_processor.chunker import OptimizedChunker
 from src.vector_store.chroma_manager import ChromaDBManager

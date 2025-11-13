@@ -42,7 +42,7 @@ class SimpleChatCLI:
             config = HealthcareWorkflowConfig(
                 openai_api_key=openai_key,
                 tavily_api_key=tavily_key,
-                model="gpt-4o-mini"
+                model="gpt-3.5-turbo"
             )
             self.workflow = HealthcareWorkflow(config)
             print("✓ Ready!\n")

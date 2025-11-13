@@ -63,7 +63,7 @@ class HealthcareWorkflowConfig:
         self,
         openai_api_key: str,
         tavily_api_key: str,
-        model: str = "gpt-4o-mini",
+        model: str = "gpt-3.5-turbo",
         temperature: float = 0.7,
         vectorstore_path: Optional[str] = None
     ):
@@ -666,7 +666,7 @@ def main():
     config = HealthcareWorkflowConfig(
         openai_api_key="your-openai-key",  # Set via environment variable
         tavily_api_key="your-tavily-key",   # Get free at https://tavily.com
-        model="gpt-4o-mini"
+        model="gpt-3.5-turbo"
     )
     
     # Create workflow

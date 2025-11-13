@@ -28,7 +28,7 @@ class HealthcareConfig:
         # 2. Initialize LLM and Web Search Tool
         print("   -> Initializing LLM and Web Search...")
         self.llm = ChatOpenAI(
-            model="gpt-4o-mini",
+            model="gpt-3.5-turbo",
             temperature=0.7,
             api_key=openai_api_key
         )
