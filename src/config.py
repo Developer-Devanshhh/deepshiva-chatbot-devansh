@@ -29,13 +29,14 @@ class HealthcareConfig:
         # 2. Initialize LLM and Web Search Tool
         print("   -> Initializing LLM and Web Search...")
         self.llm = ChatOpenAI(
-            model="gpt-3.5-turbo",
-            temperature=0.7,
-            api_key=openai_api_key
+            model="gpt-4o-mini",
+            temperature=0.3,
+            api_key=openai_api_key,
+            max_tokens=800
         )
         self.search_tool = TavilySearchResults(
             api_key=tavily_api_key,
-            max_results=5
+            max_results=3
         )
         print("   ✓ LLM and Web Search ready.")
         

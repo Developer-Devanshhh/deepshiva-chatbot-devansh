@@ -1,6 +1,7 @@
 "use client";
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import ReactMarkdown from 'react-markdown';
 import { 
   Leaf, Send, Sparkles, Loader2, Plus, MessageCircle, 
@@ -143,6 +144,11 @@ export default function HealthcareChat() {
   const [isLoading, setIsLoading] = useState(false);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<number | null>(null);
+  const [userProfile, setUserProfile] = useState<{
+    email: string;
+    display_name?: string;
+    photo_url?: string;
+  } | null>(null);
   
   // UI State
   const [isSidebarOpen, setIsSidebarOpen] = useState(true); // Desktop default open
@@ -167,6 +173,7 @@ export default function HealthcareChat() {
       return;
     }
     fetchSessions(token);
+    fetchUserProfile(token);
     
     // Auto-collapse sidebar on small screens
     const handleResize = () => {
@@ -184,6 +191,23 @@ export default function HealthcareChat() {
   }, [messages, isLoading]);
 
   // --- API Functions ---
+  const fetchUserProfile = async (token: string) => {
+    try {
+      const res = await fetch("/api/profile", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const profile = await res.json();
+        console.log("User profile loaded:", profile);
+        setUserProfile(profile);
+      } else {
+        console.error("Failed to fetch profile:", res.status, await res.text());
+      }
+    } catch (err) {
+      console.error("Failed to fetch user profile", err);
+    }
+  };
+
   const fetchSessions = async (token: string) => {
     try {
       const res = await fetch("/api/sessions", {
@@ -505,6 +529,31 @@ export default function HealthcareChat() {
               </div>
             </div>
           </div>
+
+          {/* User Profile - Right Side */}
+          {userProfile && (
+            <div className="flex items-center gap-2">
+              {userProfile.photo_url ? (
+                <Image 
+                  src={userProfile.photo_url} 
+                  alt={userProfile.display_name || 'User'} 
+                  width={36}
+                  height={36}
+                  className="rounded-full border-2 border-[#3A5A40]/20 shadow-sm"
+                  onError={(e) => {
+                    console.error('Failed to load header avatar:', userProfile.photo_url);
+                  }}
+                />
+              ) : (
+                <div className="w-9 h-9 rounded-full bg-[#3A5A40] flex items-center justify-center text-white text-sm font-bold shadow-sm">
+                  {(userProfile.display_name || userProfile.email).charAt(0).toUpperCase()}
+                </div>
+              )}
+              <span className="hidden sm:block text-sm font-medium text-stone-700">
+                {userProfile.display_name || userProfile.email.split('@')[0]}
+              </span>
+            </div>
+          )}
         </header>
 
         {/* Chat Messages Area */}
@@ -555,8 +604,24 @@ export default function HealthcareChat() {
                     >
                       {msg.role === 'assistant' ? (
                         <Leaf className="w-5 h-5 text-[#3A5A40]" />
-                      ) : (
-                        <span className="text-white font-serif font-bold">You</span>
+                      ) : userProfile?.photo_url ? (
+                        <Image 
+                          src={userProfile.photo_url} 
+                          alt={userProfile.display_name || 'User'} 
+                          width={40}
+                          height={40}
+                          className="rounded-full object-cover"
+                          onError={(e) => {
+                            // Fallback if image fails to load
+                            console.error('Failed to load user avatar:', userProfile.photo_url);
+                          }}
+                        />
+                      ) : null}
+                      {/* Fallback avatar (shown if image fails) */}
+                      {msg.role !== 'assistant' && (
+                        <span className={`text-white font-bold text-sm ${userProfile?.photo_url ? 'hidden' : ''}`}>
+                          {userProfile?.display_name?.[0]?.toUpperCase() || userProfile?.email?.[0]?.toUpperCase() || 'U'}
+                        </span>
                       )}
                     </div>
 

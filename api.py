@@ -24,6 +24,7 @@ from src.database.core import engine, Base, get_db
 from src.database.models import User, ChatSession, ChatMessage as DBChatMessage
 from src.auth.security import verify_password, get_password_hash, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES
 from src.auth.deps import get_current_user
+from src.auth.firebase_auth import initialize_firebase, verify_firebase_token
 from src.blockchain.ledger import audit_ledger
 
 # Create DB tables
@@ -63,6 +64,10 @@ def load_workflow():
     logging.info("Initializing Healthcare workflow...")
 
     try:
+        # Initialize Firebase
+        initialize_firebase()
+        
+        # Initialize workflow
         config = HealthcareConfig()
         workflow = HealthcareWorkflow(config)
         logging.info("Workflow initialized successfully.")
@@ -82,6 +87,13 @@ class Token(BaseModel):
     access_token: str
     token_type: str
 
+class UserProfile(BaseModel):
+    id: int
+    email: str
+    display_name: Optional[str] = None
+    photo_url: Optional[str] = None
+    created_at: str
+
 class ChatMessage(BaseModel):
     query: str
     session_id: Optional[int] = None
@@ -98,6 +110,90 @@ class SessionResponse(BaseModel):
 # -------------------------------------------------------
 # AUTH ENDPOINTS
 # -------------------------------------------------------
+
+class FirebaseLoginRequest(BaseModel):
+    id_token: str
+    email: Optional[str] = None
+    display_name: Optional[str] = None
+    photo_url: Optional[str] = None
+
+@app.post("/auth/firebase-login", response_model=Token)
+def firebase_login(request: FirebaseLoginRequest, db: Session = Depends(get_db)):
+    """Authenticate user with Firebase ID token"""
+    
+    try:
+        # Verify Firebase token
+        decoded_token = verify_firebase_token(request.id_token)
+        if not decoded_token:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid Firebase token - Firebase Admin SDK may not be configured",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        
+        # Extract user info from token
+        firebase_uid = decoded_token.get("uid")
+        email = decoded_token.get("email") or request.email
+        
+        if not email:
+            raise HTTPException(status_code=400, detail="Email not provided")
+        
+        # Check if user exists, create if not
+        user = db.query(User).filter(User.email == email).first()
+        
+        if not user:
+            # Create new user with Firebase authentication
+            # Use a random password since they'll auth via Firebase
+            user = User(
+                email=email,
+                hashed_password=get_password_hash(str(uuid4())),  # Random password
+                firebase_uid=firebase_uid,
+                display_name=request.display_name,
+                photo_url=request.photo_url
+            )
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+            
+            # Audit Log
+            audit_ledger.add_block(user.id, "FIREBASE_SIGNUP", f"User registered via Google: {email}")
+        else:
+            # Update Firebase UID and profile info (always update to get latest from Google)
+            updated = False
+            if not user.firebase_uid:
+                user.firebase_uid = firebase_uid
+                updated = True
+            # Always update display name and photo from Google profile
+            if request.display_name and user.display_name != request.display_name:
+                user.display_name = request.display_name
+                updated = True
+            if request.photo_url and user.photo_url != request.photo_url:
+                user.photo_url = request.photo_url
+                updated = True
+            
+            if updated:
+                db.commit()
+                db.refresh(user)
+            
+            # Audit Log
+            audit_ledger.add_block(user.id, "FIREBASE_LOGIN", "User logged in via Google")
+        
+        # Create JWT token
+        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        access_token = create_access_token(
+            data={"sub": user.email}, expires_delta=access_token_expires
+        )
+        return {"access_token": access_token, "token_type": "bearer"}
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Firebase login error: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Authentication failed: {str(e)}"
+        )
+
 @app.post("/auth/signup", response_model=Token)
 def signup(user: UserCreate, db: Session = Depends(get_db)):
     db_user = db.query(User).filter(User.email == user.email).first()
@@ -137,6 +233,17 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
         data={"sub": user.email}, expires_delta=access_token_expires
     )
     return {"access_token": access_token, "token_type": "bearer"}
+
+@app.get("/auth/me", response_model=UserProfile)
+def get_current_user_profile(current_user: User = Depends(get_current_user)):
+    """Get current user profile information"""
+    return {
+        "id": current_user.id,
+        "email": current_user.email,
+        "display_name": current_user.display_name,
+        "photo_url": current_user.photo_url,
+        "created_at": str(current_user.created_at)
+    }
 
 # -------------------------------------------------------
 # SESSION ENDPOINTS
