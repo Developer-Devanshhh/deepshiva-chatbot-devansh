@@ -32,16 +32,17 @@ class HealthcareWorkflow:
         self.emergency_detector = HybridEmergencyDetector()
         
         # Agents using WEB SEARCH get config.search_tool
-        self.gov_scheme_chain = GovernmentSchemeChain(config.llm, config.search_tool)
         self.mental_wellness_chain = MentalWellnessChain(config.llm, config.search_tool)
         self.hospital_chain = HospitalLocatorChain(config.llm, config.search_tool)
         
         # Agents using domain-specific RAG retrievers
         yoga_retriever = config.get_retriever('yoga') or config.rag_retriever
         ayush_retriever = config.get_retriever('ayush') or config.rag_retriever
+        schemes_retriever = config.get_retriever('government_schemes') or config.rag_retriever
         
         self.ayush_chain = AyushChain(config.llm, ayush_retriever)
         self.yoga_chain = YogaChain(config.llm, yoga_retriever)
+        self.gov_scheme_chain = GovernmentSchemeChain(config.llm, schemes_retriever, config.search_tool)
 
     async def run(self, user_input: str, query_for_classification: str) -> Dict[str, Any]:
         """Execute the workflow with multi-agent orchestration"""
@@ -83,7 +84,20 @@ class HealthcareWorkflow:
         print(f"🔗 [STEP 3/4] Executing Single Agent for '{intent}'...\n")
         result = {"intent": intent, "reasoning": classification.get("reasoning"), "output": None, "is_multi_domain": False}
         
-        if intent == "government_scheme_support":
+        if intent == "general_conversation":
+            # Handle greetings and casual conversation
+            greetings = ["hello", "hi", "hey", "namaste", "greetings"]
+            thanks = ["thank", "thanks", "appreciate"]
+            
+            lower_input = user_input.lower()
+            if any(word in lower_input for word in greetings):
+                result["output"] = "Namaste! 🙏 I'm DeepShiva, your holistic health companion. How can I support your well-being today?"
+            elif any(word in lower_input for word in thanks):
+                result["output"] = "You're most welcome! 🙏 Feel free to ask if you have any other health-related questions. Stay healthy!"
+            else:
+                result["output"] = "I'm here to help with your health and wellness needs. You can ask me about yoga, Ayurveda, government health schemes, symptoms, or finding healthcare facilities. How may I assist you?"
+        
+        elif intent == "government_scheme_support":
             result["output"] = self.gov_scheme_chain.run(user_input)
             
         elif intent == "mental_wellness_support":

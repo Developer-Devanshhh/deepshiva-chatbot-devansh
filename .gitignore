@@ -148,6 +148,10 @@ ENV/
 env.bak/
 venv.bak/
 
+# But allow example files
+!.env.example
+!frontend/.env.local.example
+
 # Spyder project settings
 .spyderproject
 .spyproject
@@ -214,3 +218,28 @@ marimo/_lsp/
 healthcare.db
 audit_ledger.json
 test_*.py
+
+# Firebase credentials (NEVER COMMIT THESE)
+config/firebase-service-account.json
+config/firebase-service-account.json.json
+config/credentials.json
+config/token.json
+
+# Environment files with secrets (but allow examples)
+.env
+.env.local
+frontend/.env.local
+frontend/.env
+!.env.example
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Audio cache
+audio_cache/
+
+# Data directories
+data/
+logs/

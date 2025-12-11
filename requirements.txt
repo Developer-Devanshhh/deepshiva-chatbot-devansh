@@ -21,6 +21,7 @@ tavily-python==0.7.12
 python-jose==3.5.0
 passlib==1.7.4
 bcrypt==4.0.1
+firebase-admin==6.5.0
 requests==2.32.3
 unstructured==0.15.9
 unstructured-client==0.25.5
