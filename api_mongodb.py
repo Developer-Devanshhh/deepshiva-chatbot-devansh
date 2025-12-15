@@ -739,9 +739,34 @@ async def text_to_speech(request: TTSRequest, current_user: dict = Depends(get_c
     Convert text to speech using Sarvam AI with caching and speed control
     """
     try:
+        import re
+        
+        # Clean text for TTS (remove all formatting and special characters)
+        text_for_tts = request.text
+        
+        # Remove citations
+        text_for_tts = re.sub(r'\[Source:.*?\]', '', text_for_tts)
+        text_for_tts = re.sub(r'\[\d+\]', '', text_for_tts)
+        text_for_tts = re.sub(r'\[Citation:.*?\]', '', text_for_tts)
+        
+        # Remove markdown formatting
+        text_for_tts = re.sub(r'#{1,6}\s*', '', text_for_tts)  # Headers
+        text_for_tts = re.sub(r'\*\*(.*?)\*\*', r'\1', text_for_tts)  # Bold
+        text_for_tts = re.sub(r'\*(.*?)\*', r'\1', text_for_tts)  # Italic
+        text_for_tts = re.sub(r'`(.*?)`', r'\1', text_for_tts)  # Code
+        text_for_tts = re.sub(r'^\s*[-*+]\s+', '', text_for_tts, flags=re.MULTILINE)  # Lists
+        text_for_tts = re.sub(r'^\s*\d+\.\s+', '', text_for_tts, flags=re.MULTILINE)  # Numbered lists
+        
+        # Remove emojis and special symbols
+        text_for_tts = re.sub(r'[^\w\s,.!?;:()\-\'/"]', '', text_for_tts)
+        
+        # Clean up spacing
+        text_for_tts = re.sub(r'\n+', '. ', text_for_tts)
+        text_for_tts = re.sub(r'\s+', ' ', text_for_tts).strip()
+        
         # 1. Caching Mechanism
         # Normalize text for hash: strip and lower to catch duplicates better
-        normalized_text = request.text.strip().lower()
+        normalized_text = text_for_tts.strip().lower()
         # Include params in hash to differentiate quality settings
         hash_input = f"{normalized_text}_{request.language_code}_anushka_v2_24k"
         text_hash = hashlib.md5(hash_input.encode()).hexdigest()
@@ -776,8 +801,8 @@ async def text_to_speech(request: TTSRequest, current_user: dict = Depends(get_c
 
         client = SarvamAI(api_subscription_key=api_key)
         
-        # 3. Process Text with Chunking
-        text_full = request.text.strip()
+        # 3. Process Text with Chunking (use cleaned text without citations)
+        text_full = text_for_tts.strip()
         if not text_full:
              raise HTTPException(status_code=400, detail="Text is empty")
 
@@ -1138,12 +1163,34 @@ User Profile (Anonymized ID: {anonymous_id}):
         if request.generate_audio:
             from openai import OpenAI
             import hashlib
+            import re
             
             client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
             
             # Get text to speak
             raw_output = result.get("output") if isinstance(result, dict) else result
             tts_input = raw_output if isinstance(raw_output, str) else str(raw_output)
+            
+            # Clean text for TTS (but keep in displayed text)
+            # Remove citations
+            tts_input = re.sub(r'\[Source:.*?\]', '', tts_input)
+            tts_input = re.sub(r'\[\d+\]', '', tts_input)
+            tts_input = re.sub(r'\[Citation:.*?\]', '', tts_input)
+            
+            # Remove markdown formatting
+            tts_input = re.sub(r'#{1,6}\s*', '', tts_input)  # Headers (###)
+            tts_input = re.sub(r'\*\*(.*?)\*\*', r'\1', tts_input)  # Bold
+            tts_input = re.sub(r'\*(.*?)\*', r'\1', tts_input)  # Italic
+            tts_input = re.sub(r'`(.*?)`', r'\1', tts_input)  # Inline code
+            tts_input = re.sub(r'^\s*[-*+]\s+', '', tts_input, flags=re.MULTILINE)  # List markers
+            tts_input = re.sub(r'^\s*\d+\.\s+', '', tts_input, flags=re.MULTILINE)  # Numbered lists
+            
+            # Remove emojis (all Unicode emoji characters)
+            tts_input = re.sub(r'[^\w\s,.!?;:()\-\'/"]', '', tts_input)
+            
+            # Clean up multiple spaces and newlines
+            tts_input = re.sub(r'\n+', '. ', tts_input)  # Replace newlines with periods
+            tts_input = re.sub(r'\s+', ' ', tts_input).strip()
             
             # Create cache filename
             text_hash = hashlib.md5(tts_input.encode("utf-8")).hexdigest()
