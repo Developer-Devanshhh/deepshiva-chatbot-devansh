@@ -9,6 +9,7 @@ export async function GET(request: Request) {
     const response = await fetch(`${backendUrl}/auth/me`, {
       headers: {
         'Authorization': authHeader,
+        'ngrok-skip-browser-warning': 'true',
       },
     });
 

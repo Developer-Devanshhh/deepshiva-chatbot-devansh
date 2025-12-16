@@ -12,6 +12,7 @@ export async function GET(request: NextRequest) {
       headers: {
         'Authorization': token || '',
         'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true',
       },
     });
 
@@ -36,6 +37,7 @@ export async function POST(request: NextRequest) {
       method: 'POST',
       headers: {
         'Authorization': token || '',
+        'ngrok-skip-browser-warning': 'true',
       },
       body: formData,
     });

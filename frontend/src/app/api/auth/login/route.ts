@@ -13,7 +13,10 @@ export async function POST(req: NextRequest) {
 
         const response = await fetch(`${backendUrl}/auth/login`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            headers: { 
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'ngrok-skip-browser-warning': 'true'
+            },
             body: params,
         });
 
