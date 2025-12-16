@@ -248,8 +248,7 @@ export default function HealthcareChat() {
     if (!validToken) return;
 
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
-      const res = await fetch(`${backendUrl}/auth/me`, {
+      const res = await fetch(`/api/auth/me`, {
         headers: { Authorization: `Bearer ${validToken}` }
       });
       if (res.ok) {
@@ -607,8 +606,7 @@ export default function HealthcareChat() {
         address: data.address || {}
       };
 
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
-      const res = await fetch(`${backendUrl}/users/profile`, {
+      const res = await fetch(`/api/profile`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
