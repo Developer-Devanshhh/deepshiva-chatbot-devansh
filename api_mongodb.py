@@ -104,7 +104,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",
-        "https://*.vercel.app",  # All Vercel deployments
+        "https://*.vercel.app",
+        "https://pran-protocol-beff.vercel.app",  # All Vercel deployments
         "https://*.ngrok-free.app",  # Ngrok tunnels
     ],
     allow_credentials=True,
