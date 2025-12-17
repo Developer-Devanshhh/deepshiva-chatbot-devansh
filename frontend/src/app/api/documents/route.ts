@@ -11,17 +11,10 @@ export async function GET(request: NextRequest) {
   try {
     const token = request.headers.get('authorization');
     
-    if (!token) {
-      return NextResponse.json(
-        { detail: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-    
     const response = await fetch(`${API_URL}/documents`, {
       method: 'GET',
       headers: {
-        'Authorization': token,
+        'Authorization': token || '',
         'Content-Type': 'application/json',
         'ngrok-skip-browser-warning': 'true',
       },
@@ -42,20 +35,12 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const token = request.headers.get('authorization');
-    
-    if (!token) {
-      return NextResponse.json(
-        { detail: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-    
     const formData = await request.formData();
     
     const response = await fetch(`${API_URL}/documents/upload`, {
       method: 'POST',
       headers: {
-        'Authorization': token,
+        'Authorization': token || '',
         'ngrok-skip-browser-warning': 'true',
       },
       body: formData,

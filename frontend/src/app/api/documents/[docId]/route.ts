@@ -9,20 +9,12 @@ export async function DELETE(
 ) {
   try {
     const token = request.headers.get('authorization');
-    
-    if (!token) {
-      return NextResponse.json(
-        { detail: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-    
     const { docId } = await context.params;
     
     const response = await fetch(`${API_URL}/documents/${docId}`, {
       method: 'DELETE',
       headers: {
-        'Authorization': token,
+        'Authorization': token || '',
         'Content-Type': 'application/json',
         'ngrok-skip-browser-warning': 'true',
       },
