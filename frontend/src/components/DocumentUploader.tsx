@@ -56,10 +56,10 @@ export default function DocumentUploader() {
       return;
     }
 
-    // Check file size (max 10MB)
-    const maxSize = 10 * 1024 * 1024; // 10MB in bytes
+    // Check file size (Vercel serverless functions have a 4.5MB body limit)
+    const maxSize = 4.5 * 1024 * 1024; // 4.5MB in bytes
     if (file.size > maxSize) {
-      setError(`File too large. Maximum size is 10MB (${(file.size / 1024 / 1024).toFixed(2)}MB provided)`);
+      setError(`File too large. Maximum size is 4.5MB for serverless upload (${(file.size / 1024 / 1024).toFixed(2)}MB provided). Please compress your PDF or contact support for alternatives.`);
       return;
     }
 
@@ -103,9 +103,31 @@ export default function DocumentUploader() {
         setSuccess(successMsg);
         await fetchDocuments();
       } else {
-        const error = await response.json();
-        console.error('Upload failed:', response.status, error);
-        setError(error.detail || `Upload failed (${response.status})`);
+        console.log('Upload response status:', response.status);
+        
+        let errorMsg = 'Upload failed';
+        
+        // Try to parse error response
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          try {
+            const error = await response.json();
+            errorMsg = error.detail || `Upload failed (${response.status})`;
+          } catch {
+            errorMsg = await response.text() || `Upload failed (${response.status})`;
+          }
+        } else {
+          const textError = await response.text();
+          // Handle Vercel's body size limit error
+          if (response.status === 403 && textError.toLowerCase().includes('forbidden')) {
+            errorMsg = `File too large for serverless upload (${(file.size / 1024 / 1024).toFixed(2)}MB). Please use a file under 4.5MB or contact support for direct upload options.`;
+          } else {
+            errorMsg = textError || `Upload failed (${response.status})`;
+          }
+        }
+        
+        console.error('Upload failed:', response.status, errorMsg);
+        setError(errorMsg);
       }
     } catch (err) {
       console.error('Upload error:', err);
