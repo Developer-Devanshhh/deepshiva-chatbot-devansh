@@ -2,23 +2,40 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const API_URL = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
 
-// Increase body size limit for file uploads
-export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
-
 // GET /api/documents - List user documents
 export async function GET(request: NextRequest) {
   try {
     const token = request.headers.get('authorization');
     
+    if (!token) {
+      return NextResponse.json(
+        { detail: 'Authorization required' },
+        { status: 401 }
+      );
+    }
+    
     const response = await fetch(`${API_URL}/documents`, {
       method: 'GET',
       headers: {
-        'Authorization': token || '',
+        'Authorization': token,
         'Content-Type': 'application/json',
         'ngrok-skip-browser-warning': 'true',
       },
     });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Backend documents list error:', response.status, errorText);
+      try {
+        const errorJson = JSON.parse(errorText);
+        return NextResponse.json(errorJson, { status: response.status });
+      } catch {
+        return NextResponse.json(
+          { detail: errorText || 'Failed to fetch documents' },
+          { status: response.status }
+        );
+      }
+    }
 
     const data = await response.json();
     return NextResponse.json(data, { status: response.status });
@@ -35,16 +52,38 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const token = request.headers.get('authorization');
+    
+    if (!token) {
+      return NextResponse.json(
+        { detail: 'Authorization required' },
+        { status: 401 }
+      );
+    }
+    
     const formData = await request.formData();
     
     const response = await fetch(`${API_URL}/documents/upload`, {
       method: 'POST',
       headers: {
-        'Authorization': token || '',
+        'Authorization': token,
         'ngrok-skip-browser-warning': 'true',
       },
       body: formData,
     });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Backend document upload error:', response.status, errorText);
+      try {
+        const errorJson = JSON.parse(errorText);
+        return NextResponse.json(errorJson, { status: response.status });
+      } catch {
+        return NextResponse.json(
+          { detail: errorText || 'Upload failed' },
+          { status: response.status }
+        );
+      }
+    }
 
     const data = await response.json();
     return NextResponse.json(data, { status: response.status });
