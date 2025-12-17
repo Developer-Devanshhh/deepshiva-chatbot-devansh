@@ -107,10 +107,10 @@ export default function BlockchainAuditPage() {
         {/* Header */}
         <div className="mb-8">
           <button
-            onClick={() => router.push('/')}
-            className="mb-4 text-primary hover:text-primary-dark flex items-center gap-2 font-medium transition-colors"
+            onClick={() => router.back()}
+            className="mb-4 text-primary hover:text-primary-dark hover:underline flex items-center gap-2 font-medium transition-colors"
           >
-            ← {t('backToChat')}
+            {t('backToChat')}
           </button>
           <h1 className="text-4xl font-bold text-stone-800 flex items-center gap-3 font-serif">
             🔗 {t('title')}
