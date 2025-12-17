@@ -399,19 +399,19 @@ class HealthcareWorkflow:
             if intent == 'ayush_support':
                 domain_names.append('Ayurveda')
                 retrieval_tasks.append(asyncio.to_thread(
-                    self.config.rag_retrievers['ayush'].invoke, 
+                    self.config.rag_retrievers['ayush'].retrieve, 
                     optimized_query
                 ))
             elif intent == 'yoga_support':
                 domain_names.append('Yoga')
                 retrieval_tasks.append(asyncio.to_thread(
-                    self.config.rag_retrievers['yoga'].invoke, 
+                    self.config.rag_retrievers['yoga'].retrieve, 
                     optimized_query
                 ))
             elif intent == 'government_scheme_support':
                 domain_names.append('Government Schemes')
                 retrieval_tasks.append(asyncio.to_thread(
-                    self.config.rag_retrievers['schemes'].invoke, 
+                    self.config.rag_retrievers['schemes'].retrieve, 
                     optimized_query
                 ))
         
@@ -424,13 +424,18 @@ class HealthcareWorkflow:
             all_retrieved_docs = []
             domain_doc_counts = {}
             
-            for domain, docs in zip(domain_names, all_docs):
-                if isinstance(docs, Exception):
-                    print(f"   ⚠️ {domain} retrieval failed: {docs}")
-                elif docs:
-                    all_retrieved_docs.extend(docs)
-                    domain_doc_counts[domain] = len(docs)
-                    print(f"   ✅ {domain}: {len(docs)} documents retrieved")
+            for domain, retrieval_result in zip(domain_names, all_docs):
+                if isinstance(retrieval_result, Exception):
+                    print(f"   ⚠️ {domain} retrieval failed: {retrieval_result}")
+                elif retrieval_result:
+                    # Extract 'results' from the Dict returned by retrieve()
+                    docs = retrieval_result.get('results', []) if isinstance(retrieval_result, dict) else retrieval_result
+                    if docs:
+                        all_retrieved_docs.extend(docs)
+                        domain_doc_counts[domain] = len(docs)
+                        print(f"   ✅ {domain}: {len(docs)} documents retrieved")
+                    else:
+                        print(f"   ⚠️ {domain}: No documents found")
                 else:
                     print(f"   ⚠️ {domain}: No documents found")
             
