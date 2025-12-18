@@ -1054,14 +1054,14 @@ export default function HealthcareChat() {
 
         {/* Top Navbar */}
         {/* Top Navbar */}
-        <header className="bg-white border-b border-stone-200 h-16 flex items-center px-4 justify-between shadow-sm z-10">
-          <div className="flex items-center gap-3">
+        <header className="bg-white border-b border-stone-200 h-14 sm:h-16 flex items-center px-3 sm:px-4 justify-between shadow-sm z-10">
+          <div className="flex items-center gap-2 sm:gap-3">
             {/* Sidebar Toggles */}
             <button
               onClick={() => setIsMobileSidebarOpen(true)}
-              className="md:hidden p-2 text-stone-600 hover:bg-stone-100 rounded-lg"
+              className="md:hidden p-1.5 sm:p-2 text-stone-600 hover:bg-stone-100 rounded-lg"
             >
-              <Menu className="w-6 h-6" />
+              <Menu className="w-5 h-5 sm:w-6 sm:h-6" />
             </button>
 
             <button
@@ -1072,24 +1072,24 @@ export default function HealthcareChat() {
             </button>
 
             <div>
-              <h1 className="font-serif font-bold text-stone-800 text-lg">{tHead('title')}</h1>
+              <h1 className="font-serif font-bold text-stone-800 text-base sm:text-lg">{tHead('title')}</h1>
               <div className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                <span className="text-xs text-stone-500 font-medium">{tHead('subtitle')}</span>
+                <span className="text-xs text-stone-500 font-medium hidden sm:inline">{tHead('subtitle')}</span>
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4">
             {/* Alerts Toggle */}
             <LanguageSwitcher />
             <button
               onClick={() => setIsAlertsOpen(true)}
-              className="relative p-2 text-stone-500 hover:text-red-500 hover:bg-red-50 rounded-full transition-all"
+              className="relative p-1.5 sm:p-2 text-stone-500 hover:text-red-500 hover:bg-red-50 rounded-full transition-all"
               title={tAlerts('title')}
             >
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-1.5 right-2 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
+              <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span className="absolute top-1 right-1 sm:top-1.5 sm:right-2 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
             </button>
 
             {/* User Profile - Right Side */}
@@ -1099,15 +1099,15 @@ export default function HealthcareChat() {
                   <Image
                     src={userProfile.photo_url}
                     alt={userProfile.display_name || 'User'}
-                    width={36}
-                    height={36}
-                    className="rounded-full border-2 border-[#3A5A40]/20 shadow-sm"
+                    width={32}
+                    height={32}
+                    className="w-8 h-8 sm:w-9 sm:h-9 rounded-full border-2 border-[#3A5A40]/20 shadow-sm"
                     onError={(e) => {
                       console.error('Failed to load header avatar:', userProfile.photo_url);
                     }}
                   />
                 ) : (
-                  <div className="w-9 h-9 rounded-full bg-[#3A5A40] flex items-center justify-center text-white text-sm font-bold shadow-sm">
+                  <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#3A5A40] flex items-center justify-center text-white text-xs sm:text-sm font-bold shadow-sm">
                     {(userProfile.display_name || userProfile.email).charAt(0).toUpperCase()}
                   </div>
                 )}
@@ -1178,10 +1178,10 @@ export default function HealthcareChat() {
               {messages.map((msg, index) => (
                 <div key={index} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
 
-                  <div className={`flex gap-4 max-w-[90%] md:max-w-[80%] ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+                  <div className={`flex gap-2 sm:gap-4 max-w-[95%] sm:max-w-[90%] md:max-w-[80%] ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
 
                     {/* Avatar */}
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 shadow-sm border
+                    <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0 shadow-sm border
                       ${msg.role === 'assistant'
                         ? 'bg-[#E0E5D9] border-[#3A5A40]/20'
                         : 'bg-[#3A5A40] border-[#3A5A40]'
@@ -1189,14 +1189,14 @@ export default function HealthcareChat() {
 
                     >
                       {msg.role === 'assistant' ? (
-                        <Leaf className="w-5 h-5 text-[#3A5A40]" />
+                        <Leaf className="w-4 h-4 sm:w-5 sm:h-5 text-[#3A5A40]" />
                       ) : userProfile?.photo_url ? (
                         <Image
                           src={userProfile.photo_url}
                           alt={userProfile.display_name || 'User'}
-                          width={40}
-                          height={40}
-                          className="rounded-full object-cover"
+                          width={32}
+                          height={32}
+                          className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover"
                           onError={(e) => {
                             // Fallback if image fails to load
                             console.error('Failed to load user avatar:', userProfile.photo_url);
@@ -1205,7 +1205,7 @@ export default function HealthcareChat() {
                       ) : null}
                       {/* Fallback avatar (shown if image fails) */}
                       {msg.role !== 'assistant' && (
-                        <span className={`text-white font-bold text-sm ${userProfile?.photo_url ? 'hidden' : ''}`}>
+                        <span className={`text-white font-bold text-xs sm:text-sm ${userProfile?.photo_url ? 'hidden' : ''}`}>
                           {userProfile?.display_name?.[0]?.toUpperCase() || userProfile?.email?.[0]?.toUpperCase() || 'U'}
                         </span>
                       )}
@@ -1213,13 +1213,13 @@ export default function HealthcareChat() {
 
                     {/* Bubble */}
                     <div className={`
-                      rounded-2xl p-5 shadow-sm relative group transition-all
+                      rounded-2xl p-3 sm:p-5 shadow-sm relative group transition-all
                       ${msg.role === 'user'
                         ? 'bg-[#3A5A40] text-white rounded-tr-none' // User Bubble
                         : 'bg-white text-stone-800 border border-stone-100 rounded-tl-none hover:shadow-organic' // Bot Bubble
                       }
                     `}>
-                      <div className="text-[15px] leading-7">
+                      <div className="text-sm sm:text-[15px] leading-6 sm:leading-7">
                         {msg.content}
                       </div>
 
@@ -1275,8 +1275,8 @@ export default function HealthcareChat() {
         </div >
 
         {/* Input Area */}
-        < div className="bg-white border-t border-stone-200 px-4 py-5 pb-6" >
-          <div className="max-w-4xl mx-auto flex items-end gap-3">
+        <div className="bg-white border-t border-stone-200 px-3 sm:px-4 py-3 sm:py-5 pb-4 sm:pb-6">
+          <div className="max-w-4xl mx-auto flex items-end gap-2 sm:gap-3">
 
             <div className="relative flex-1 group">
               <input
@@ -1285,19 +1285,19 @@ export default function HealthcareChat() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSubmit()}
-                className="w-full pl-6 pr-4 py-4 rounded-2xl bg-stone-50 border border-stone-200 focus:outline-none focus:ring-2 focus:ring-[#3A5A40]/20 focus:border-[#3A5A40] text-stone-800 placeholder:text-stone-400 transition-all shadow-inner"
+                className="w-full pl-4 sm:pl-6 pr-4 py-3 sm:py-4 rounded-2xl bg-stone-50 border border-stone-200 focus:outline-none focus:ring-2 focus:ring-[#3A5A40]/20 focus:border-[#3A5A40] text-stone-800 placeholder:text-stone-400 transition-all shadow-inner text-sm sm:text-base"
                 placeholder={t('askPlaceholder')}
                 disabled={isLoading}
               />
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2">
               <button
                 onClick={() => setShowDocumentUpload(true)}
-                className="p-4 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-full transition-all shadow-md hover:shadow-lg hover:-translate-y-1 active:translate-y-0"
+                className="p-3 sm:p-4 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-full transition-all shadow-md hover:shadow-lg active:scale-95"
                 title="Upload medical document"
               >
-                <FileText className="w-5 h-5" />
+                <FileText className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
 
               <VoiceRecorder
@@ -1309,20 +1309,20 @@ export default function HealthcareChat() {
               <button
                 onClick={() => handleEmergencyLocator('manual')}
                 disabled={isLocating || isLoading}
-                className={`p-4 rounded-full transition-all shadow-md hover:shadow-lg hover:-translate-y-1 active:translate-y-0 disabled:opacity-50 disabled:shadow-none
+                className={`p-3 sm:p-4 rounded-full transition-all shadow-md active:scale-95 disabled:opacity-50
                   ${isLocating ? 'bg-red-100 text-red-400' : 'bg-red-50 hover:bg-red-100 text-red-600'}
                 `}
                 title="Find Nearby Hospitals (Emergency)"
               >
-                {isLocating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Activity className="w-5 h-5" />}
+                {isLocating ? <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" /> : <Activity className="w-4 h-4 sm:w-5 sm:h-5" />}
               </button>
 
               <button
                 onClick={() => handleSubmit()}
                 disabled={isLoading || !input.trim() || isProcessingAudio}
-                className="p-4 bg-[#3A5A40] hover:bg-[#2F4A33] text-white rounded-full transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:shadow-none hover:-translate-y-1 active:translate-y-0"
+                className="p-3 sm:p-4 bg-[#3A5A40] hover:bg-[#2F4A33] text-white rounded-full transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:shadow-none active:scale-95"
               >
-                {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
+                {isLoading ? <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" /> : <Send className="w-4 h-4 sm:w-5 sm:h-5" />}
               </button>
             </div>
             
