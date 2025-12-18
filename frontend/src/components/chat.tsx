@@ -658,7 +658,32 @@ export default function HealthcareChat() {
         const data = await res.json();
 
         // Handle various response structures
-        const hospitals = Array.isArray(data) ? data : (data.hospitals || []);
+        let hospitals = Array.isArray(data) ? data : (data.hospitals || []);
+
+        // Calculate distance for each hospital if not provided
+        hospitals = hospitals.map((hospital: any) => {
+          if (!hospital.distance_km && hospital.latitude && hospital.longitude) {
+            // Haversine formula to calculate distance
+            const R = 6371; // Radius of the Earth in km
+            const dLat = (hospital.latitude - latitude) * Math.PI / 180;
+            const dLon = (hospital.longitude - longitude) * Math.PI / 180;
+            const a = 
+              Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(latitude * Math.PI / 180) * Math.cos(hospital.latitude * Math.PI / 180) *
+              Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            const distance = R * c;
+            return { ...hospital, distance_km: distance };
+          }
+          return hospital;
+        });
+
+        // Sort hospitals by distance (closest first)
+        hospitals.sort((a: any, b: any) => {
+          const distA = a.distance_km || 999999;
+          const distB = b.distance_km || 999999;
+          return distA - distB;
+        });
 
         if (hospitals.length === 0) {
           setMessages(prev => [...prev, {
