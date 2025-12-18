@@ -22,7 +22,11 @@ class MongoDBManager:
         try:
             self.client = AsyncIOMotorClient(
                 self.connection_uri,
-                serverSelectionTimeoutMS=5000
+                serverSelectionTimeoutMS=30000,  # Increased from 5s to 30s
+                socketTimeoutMS=30000,  # 30s socket timeout
+                connectTimeoutMS=30000,  # 30s connect timeout
+                retryWrites=True,  # Enable retry writes
+                maxPoolSize=50  # Increase connection pool
             )
             # Verify connection
             await self.client.admin.command('ping')

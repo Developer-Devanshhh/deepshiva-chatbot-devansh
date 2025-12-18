@@ -123,6 +123,7 @@ class PostgresBlockchain:
     
     def log_audit(self, anonymous_id: str, action: str, metadata: Dict[str, Any] = None) -> Optional[Dict]:
         """Log an audit event to the blockchain"""
+        conn = None  # Initialize to None to avoid UnboundLocalError in exception handler
         try:
             # Fix: action might be a dict, convert to string
             if isinstance(action, dict):
@@ -223,8 +224,10 @@ class PostgresBlockchain:
     
     def get_audit_trail(self, anonymous_id: str) -> List[Dict[str, Any]]:
         """Get complete audit trail for a user"""
-        conn = self._get_connection()
-        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        conn = None
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
         
         cursor.execute('''
             SELECT a.*, b.block_hash, b.previous_hash, b.nonce
@@ -249,17 +252,24 @@ class PostgresBlockchain:
                     record['metadata'] = {}
             records.append(record)
         
-        cursor.close()
-        conn.close()
-        return records
+            cursor.close()
+            conn.close()
+            return records
+        except Exception as e:
+            logger.error(f"❌ Failed to get audit trail: {e}")
+            if conn:
+                conn.close()
+            return []
     
     def verify_chain_integrity(self) -> bool:
         """Verify the entire blockchain hasn't been tampered with"""
-        conn = self._get_connection()
-        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        conn = None
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
         
-        cursor.execute('SELECT * FROM blocks ORDER BY block_number ASC')
-        blocks = cursor.fetchall()
+            cursor.execute('SELECT * FROM blocks ORDER BY block_number ASC')
+            blocks = cursor.fetchall()
         
         # Empty blockchain is considered valid
         if len(blocks) == 0:
@@ -306,43 +316,62 @@ class PostgresBlockchain:
                 conn.close()
                 return False
         
-        cursor.close()
-        conn.close()
-        logger.info("✅ Blockchain integrity verified")
-        return True
+            cursor.close()
+            conn.close()
+            logger.info("✅ Blockchain integrity verified")
+            return True
+        except Exception as e:
+            logger.error(f"❌ Failed to verify chain integrity: {e}")
+            if conn:
+                conn.close()
+            return False
     
     def get_statistics(self) -> Dict[str, Any]:
         """Get blockchain statistics"""
-        conn = self._get_connection()
-        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        conn = None
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
         
-        # Total blocks
-        cursor.execute('SELECT COUNT(*) as count FROM blocks')
-        total_blocks = cursor.fetchone()['count']
-        
-        # Total audits
-        cursor.execute('SELECT COUNT(*) as count FROM audit_logs')
-        total_audits = cursor.fetchone()['count']
-        
-        # Unique users
-        cursor.execute('SELECT COUNT(DISTINCT anonymous_id) as count FROM audit_logs')
-        unique_users = cursor.fetchone()['count']
-        
-        # Action breakdown
-        cursor.execute('SELECT action, COUNT(*) as count FROM audit_logs GROUP BY action')
-        actions = cursor.fetchall()
-        actions_breakdown = {row['action']: row['count'] for row in actions}
-        
-        cursor.close()
-        conn.close()
-        
-        return {
-            "total_blocks": total_blocks,
-            "total_audits": total_audits,
-            "unique_users": unique_users,
-            "actions_breakdown": actions_breakdown,
-            "chain_integrity": self.verify_chain_integrity()
-        }
+            # Total blocks
+            cursor.execute('SELECT COUNT(*) as count FROM blocks')
+            total_blocks = cursor.fetchone()['count']
+            
+            # Total audits
+            cursor.execute('SELECT COUNT(*) as count FROM audit_logs')
+            total_audits = cursor.fetchone()['count']
+            
+            # Unique users
+            cursor.execute('SELECT COUNT(DISTINCT anonymous_id) as count FROM audit_logs')
+            unique_users = cursor.fetchone()['count']
+            
+            # Action breakdown
+            cursor.execute('SELECT action, COUNT(*) as count FROM audit_logs GROUP BY action')
+            actions = cursor.fetchall()
+            actions_breakdown = {row['action']: row['count'] for row in actions}
+            
+            cursor.close()
+            conn.close()
+            
+            return {
+                "total_blocks": total_blocks,
+                "total_audits": total_audits,
+                "unique_users": unique_users,
+                "actions_breakdown": actions_breakdown,
+                "chain_integrity": self.verify_chain_integrity()
+            }
+        except Exception as e:
+            logger.error(f"❌ Failed to get statistics: {e}")
+            if conn:
+                conn.close()
+            return {
+                "total_blocks": 0,
+                "total_audits": 0,
+                "unique_users": 0,
+                "actions_breakdown": {},
+                "chain_integrity": False,
+                "error": str(e)
+            }
 
 
 class PostgresBlockchainAuditLogger:
