@@ -974,12 +974,14 @@ Reason: {reason or "Critical symptoms detected"}
             # Run agents in PARALLEL for faster response
             print("      → Running RAG retrieval in parallel (Ayurveda, Yoga, Mental Wellness)...")
             
-            # Add VERY specific language instruction to avoid Urdu confusion
+            # Add explicit language instruction based on detected language
             response_lang = getattr(self, '_response_language', 'English')
             if "Hindi" in response_lang:
                 lang_instruction = "\n\nCRITICAL: You MUST respond in Hindi using Devanagari script (देवनागरी). DO NOT use Urdu or Arabic script (ا، ب، پ). Use Hindi characters like: क, ख, ग, घ, च, छ, ज, झ, etc."
             else:
-                lang_instruction = ""
+                lang_instruction = "\n\nIMPORTANT: You MUST respond in English. Do NOT use Hindi, Urdu, or any other language."
+            
+            print(f"      → Language instruction: {'Hindi (Devanagari)' if 'Hindi' in response_lang else 'English'}")
             
             async def get_all_recommendations():
                 tasks = [

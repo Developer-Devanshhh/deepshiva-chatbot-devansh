@@ -18,27 +18,43 @@ class MongoDBManager:
         self.db = None
         
     async def connect(self):
-        """Connect to MongoDB"""
-        try:
-            self.client = AsyncIOMotorClient(
-                self.connection_uri,
-                serverSelectionTimeoutMS=30000,  # Increased from 5s to 30s
-                socketTimeoutMS=30000,  # 30s socket timeout
-                connectTimeoutMS=30000,  # 30s connect timeout
-                retryWrites=True,  # Enable retry writes
-                maxPoolSize=50  # Increase connection pool
-            )
-            # Verify connection
-            await self.client.admin.command('ping')
-            self.db = self.client[self.database_name]
-            logger.info(f"✅ Connected to MongoDB: {self.database_name}")
-            
-            # Create indexes for performance
-            await self._create_indexes()
-            
-        except Exception as e:
-            logger.error(f"❌ Failed to connect to MongoDB: {e}")
-            raise
+        """Connect to MongoDB with retry logic for DNS issues"""
+        import asyncio
+        max_retries = 3
+        retry_delay = 5  # seconds
+        
+        for attempt in range(max_retries):
+            try:
+                logger.info(f"🔄 Attempting MongoDB connection (attempt {attempt + 1}/{max_retries})...")
+                
+                self.client = AsyncIOMotorClient(
+                    self.connection_uri,
+                    serverSelectionTimeoutMS=60000,  # Increased to 60s for slow DNS
+                    socketTimeoutMS=60000,  # 60s socket timeout
+                    connectTimeoutMS=60000,  # 60s connect timeout
+                    retryWrites=True,  # Enable retry writes
+                    maxPoolSize=50,  # Increase connection pool
+                    # Add directConnection=False to use DNS SRV properly
+                    directConnection=False
+                )
+                
+                # Verify connection
+                await self.client.admin.command('ping')
+                self.db = self.client[self.database_name]
+                logger.info(f"✅ Connected to MongoDB: {self.database_name}")
+                
+                # Create indexes for performance
+                await self._create_indexes()
+                return  # Success, exit retry loop
+                
+            except Exception as e:
+                logger.error(f"❌ Connection attempt {attempt + 1} failed: {e}")
+                if attempt < max_retries - 1:
+                    logger.info(f"⏳ Retrying in {retry_delay} seconds...")
+                    await asyncio.sleep(retry_delay)
+                else:
+                    logger.error("❌ All connection attempts failed")
+                    raise
     
     async def _create_indexes(self):
         """Create database indexes"""

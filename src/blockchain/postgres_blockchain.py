@@ -28,12 +28,38 @@ class PostgresBlockchain:
         if not self.connection_url:
             raise ValueError("BLOCKCHAIN_DATABASE_URL not set")
         
-        self._init_database()
-        logger.info(f"✅ Cloud blockchain initialized")
+        # Add connection timeout and retry logic
+        import time
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                logger.info(f"🔄 Attempting PostgreSQL blockchain connection (attempt {attempt + 1}/{max_retries})...")
+                self._init_database()
+                logger.info(f"✅ Cloud blockchain initialized")
+                break
+            except Exception as e:
+                logger.error(f"❌ Blockchain connection attempt {attempt + 1} failed: {e}")
+                if attempt < max_retries - 1:
+                    time.sleep(2)
+                else:
+                    raise
     
     def _get_connection(self):
-        """Get database connection"""
-        return psycopg2.connect(self.connection_url)
+        """Get database connection with timeout and SSL"""
+        try:
+            # Supabase requires SSL
+            return psycopg2.connect(
+                self.connection_url, 
+                connect_timeout=30,
+                sslmode='require',
+                keepalives=1,
+                keepalives_idle=30,
+                keepalives_interval=10,
+                keepalives_count=5
+            )
+        except Exception as e:
+            logger.error(f"Failed to connect to PostgreSQL: {e}")
+            raise
     
     def _init_database(self):
         """Initialize blockchain tables"""

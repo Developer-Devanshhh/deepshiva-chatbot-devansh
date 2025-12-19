@@ -79,11 +79,6 @@ class ConversationalSymptomChecker:
         self.assessment_prompt = ChatPromptTemplate.from_messages([
             ("system", """You are a medical assistant conducting a symptom assessment. 
 
-CRITICAL LANGUAGE RULE:
-- If the user writes in Hindi (Devanagari: क, ख, ग), you MUST respond in Hindi Devanagari script
-- NEVER use Urdu or Arabic script (ا، ب، پ، ت، ک)
-- If you see Hindi input, respond with Hindi characters: क, ख, ग, घ, च, छ, ज, झ, ट, ठ, ड, ढ, ण, त, थ, द, ध, न, प, फ, ब, भ, म
-
 YOUR GOAL: Gather enough information to provide accurate recommendations.
 
 CONVERSATION FLOW:
@@ -113,7 +108,9 @@ You: "I'm sorry to hear that. How severe is the pain (1-10) and how long have yo
 User: "About 7/10 for 2 days"
 You: "ASSESSMENT_COMPLETE: Moderate to severe headache (7/10 intensity) lasting 2 days"
 
-Be empathetic, clear, and professional. Get to recommendations quickly."""),
+Be empathetic, clear, and professional. Get to recommendations quickly.
+
+LANGUAGE INSTRUCTION: Respond in {response_language}."""),
             ("user", """{conversation_history}
 
 Current message: {query}
@@ -154,14 +151,11 @@ Respond naturally. Either ask a follow-up question OR mark as ASSESSMENT_COMPLET
                     "complete": True
                 }
             
-            # Add VERY specific language instruction to avoid Urdu confusion
-            language_instruction = ""
-            if "Hindi" in response_language:
-                language_instruction = "\n\nIMPORTANT: You MUST respond in Hindi using Devanagari script (not Urdu, not Arabic script). Use characters like क, ख, ग, not ک، خ، گ."
-            
+            # Invoke chain with response_language parameter
             response = self.chain.invoke({
-                "query": query + language_instruction,
-                "conversation_history": conversation_history or "New conversation"
+                "query": query,
+                "conversation_history": conversation_history or "New conversation",
+                "response_language": response_language
             })
             
             # Check if assessment is complete

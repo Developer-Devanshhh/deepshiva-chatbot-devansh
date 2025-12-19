@@ -15,9 +15,9 @@ export async function POST(req: NextRequest) {
     const backendUrl = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
     const pythonApiUrl = `${backendUrl}/chat`;
 
-    // Create abort controller with longer timeout for document processing
+    // Create abort controller with 3 minute timeout for complex queries
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 55000); // 55 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 180000); // 3 minute timeout
 
     try {
       const response = await fetch(pythonApiUrl, {

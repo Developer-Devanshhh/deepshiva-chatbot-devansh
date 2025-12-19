@@ -33,16 +33,22 @@ import io
 # Initialize blockchain (auto-detect PostgreSQL or SQLite)
 BLOCKCHAIN_DATABASE_URL = os.getenv("BLOCKCHAIN_DATABASE_URL")
 
-if BLOCKCHAIN_DATABASE_URL:
-    # Cloud PostgreSQL blockchain (shared across environments)
-    from src.blockchain.postgres_blockchain import PostgresBlockchainAuditLogger
-    blockchain_logger = PostgresBlockchainAuditLogger(BLOCKCHAIN_DATABASE_URL)
-    logging.info("🌐 Using cloud PostgreSQL blockchain")
-else:
-    # Local SQLite blockchain (development only)
-    from src.blockchain.private_blockchain import PrivateBlockchainAuditLogger
-    blockchain_logger = PrivateBlockchainAuditLogger()
-    logging.info("💾 Using local SQLite blockchain")
+blockchain_logger = None
+try:
+    if BLOCKCHAIN_DATABASE_URL:
+        # Cloud PostgreSQL blockchain (shared across environments)
+        from src.blockchain.postgres_blockchain import PostgresBlockchainAuditLogger
+        blockchain_logger = PostgresBlockchainAuditLogger(BLOCKCHAIN_DATABASE_URL)
+        logging.info("🌐 Using cloud PostgreSQL blockchain")
+    else:
+        # Local SQLite blockchain (development only)
+        from src.blockchain.private_blockchain import PrivateBlockchainAuditLogger
+        blockchain_logger = PrivateBlockchainAuditLogger()
+        logging.info("💾 Using local SQLite blockchain")
+except Exception as e:
+    logging.warning(f"⚠️ Blockchain initialization failed: {e}")
+    logging.warning("⚠️ Continuing without blockchain logging")
+    blockchain_logger = None
 
 # Existing imports
 from src.workflow import HealthcareWorkflow
@@ -258,7 +264,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
 async def background_blockchain_log(log_id: ObjectId, user_id: ObjectId, action: str, resource_type: str, resource_id: Optional[ObjectId]):
     """Background task to log to blockchain and update MongoDB"""
     try:
-        if blockchain_logger.enabled:
+        if blockchain_logger and blockchain_logger.enabled:
             blockchain_result = await blockchain_logger.log_action(
                 str(user_id),
                 action,
@@ -304,7 +310,7 @@ async def log_audit(user_id: ObjectId, action: str, resource_type: str, resource
     result = await mongodb_manager.db.audit_logs.insert_one(audit_log)
     
     # Fire and forget blockchain logging
-    if blockchain_logger.enabled:
+    if blockchain_logger and blockchain_logger.enabled:
         asyncio.create_task(background_blockchain_log(
             result.inserted_id, user_id, action, resource_type, resource_id
         ))
@@ -877,11 +883,12 @@ async def text_to_speech(request: TTSRequest, current_user: dict = Depends(get_c
 @app.post("/transcribe")
 async def transcribe_audio(
     file: UploadFile = File(...),
+    locale: str = Form("en"),  # Accept locale from form data
     current_user: dict = Depends(get_current_user)
 ):
     """
-    Transcribes uploaded audio file using OpenAI Whisper.
-    Expects 'file' in multipart/form-data.
+    Transcribes uploaded audio file using OpenAI Whisper with language hint.
+    Expects 'file' and 'locale' in multipart/form-data.
     """
     temp_filename = f"temp_{file.filename}"
     try:
@@ -904,14 +911,21 @@ async def transcribe_audio(
         # Initialize OpenAI client with explicit key
         client = OpenAI(api_key=api_key)
         
+        # Map locale to Whisper language codes
+        language_hint = "hi" if locale == "hi" else "en"
+        
         with open(temp_filename, "rb") as audio_file:
+            # Pass language hint to help Whisper recognize the correct language
             transcript = client.audio.transcriptions.create(
                 model="whisper-1", 
-                file=audio_file
+                file=audio_file,
+                language=language_hint,  # Tell Whisper to expect this language
+                response_format="verbose_json"  # Get language detection info
             )
         
-        logger.info(f"✅ Transcription successful: {transcript.text[:30]}...")
-        return {"text": transcript.text, "language": "en"}
+        detected_language = getattr(transcript, 'language', language_hint)
+        logger.info(f"✅ Transcription successful: '{transcript.text[:50]}...' (hint: {language_hint}, detected: {detected_language})")
+        return {"text": transcript.text, "language": detected_language}
 
     except Exception as e:
         logger.error(f"❌ Transcription failed: {e}")
@@ -1123,7 +1137,7 @@ User Profile (Anonymized ID: {anonymous_id}):
         await mongodb_manager.db.messages.insert_one(user_msg_doc)
         
         # Log to blockchain (if enabled)
-        if blockchain_logger.enabled:
+        if blockchain_logger and blockchain_logger.enabled:
             try:
                 tx_hash = await blockchain_logger.log_action(
                     user_id=str(user_id),
@@ -1135,8 +1149,35 @@ User Profile (Anonymized ID: {anonymous_id}):
                 logger.warning(f"Blockchain logging failed: {e}")
         
         # Process with healthcare workflow WITH CONTEXT
-        # Determine response language - be VERY specific to avoid Urdu confusion
-        response_language = "Hindi (Devanagari script, not Urdu)" if request.locale == "hi" else "English"
+        # Determine response language - detect from actual user input text
+        def detect_language_from_text(text: str, url_locale: str) -> str:
+            """Detect language from actual characters in user input"""
+            # Count Devanagari characters (Hindi: U+0900 to U+097F)
+            devanagari_count = sum(1 for char in text if '\u0900' <= char <= '\u097F')
+            # Count English/ASCII alphabetic characters
+            english_count = sum(1 for char in text if char.isascii() and char.isalpha())
+            
+            logger.info(f"📊 Language Analysis of '{text}':")
+            logger.info(f"   - Devanagari chars: {devanagari_count}")
+            logger.info(f"   - English chars: {english_count}")
+            logger.info(f"   - URL locale: {url_locale}")
+            
+            # If user typed Hindi characters, respond in Hindi
+            if devanagari_count >= 3:
+                logger.info(f"   → Decision: HINDI (has {devanagari_count} Devanagari chars)")
+                return "Hindi (Devanagari script, not Urdu)"
+            # If user typed English, respond in English
+            elif english_count > devanagari_count:
+                logger.info(f"   → Decision: ENGLISH (has {english_count} English chars)")
+                return "English"
+            # If ambiguous (no clear text), use URL locale as fallback
+            else:
+                fallback = "Hindi (Devanagari script, not Urdu)" if url_locale == "hi" else "English"
+                logger.info(f"   → Decision: FALLBACK to {fallback}")
+                return fallback
+        
+        response_language = detect_language_from_text(request.query, request.locale)
+        logger.info(f"🔤 FINAL Response Language: {response_language}")
         
         # Debug logging for location
         logger.info(f"🔍 [BACKEND STEP 1] Request received:")
@@ -1226,7 +1267,8 @@ User Profile (Anonymized ID: {anonymous_id}):
             import hashlib
             import re
             
-            client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+            # Use primary OpenAI key for TTS
+            client = OpenAI(api_key=os.getenv("OPENAI_API_KEY_1"))
             
             # Get text to speak
             raw_output = result.get("output") if isinstance(result, dict) else result
@@ -1790,6 +1832,8 @@ async def get_audit_trail(
             raise HTTPException(status_code=403, detail="Access denied - not your audit trail")
         
         # Fetch audit trail directly from blockchain
+        if not blockchain_logger:
+            raise HTTPException(status_code=503, detail="Blockchain service unavailable")
         audit_trail = blockchain_logger.blockchain.get_audit_trail(anonymous_id)
         
         return {
@@ -1831,6 +1875,8 @@ async def get_blockchain_statistics():
     Get private blockchain statistics (public endpoint)
     """
     try:
+        if not blockchain_logger:
+            raise HTTPException(status_code=503, detail="Blockchain service unavailable")
         stats = blockchain_logger.get_statistics()
         
         return {

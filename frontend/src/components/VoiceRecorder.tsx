@@ -2,7 +2,7 @@
 
 import React, { useRef, useState } from "react";
 import { Mic, Square } from "lucide-react";
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 
 type Props = {
   onTranscribed: (text: string, language?: string) => void;
@@ -13,6 +13,7 @@ type Props = {
 export default function VoiceRecorder({ onTranscribed, onError, onProcessingChange }: Props) {
   const [recording, setRecording] = useState(false);
   const t = useTranslations('Chat');
+  const locale = useLocale(); // Get current locale
   const mediaRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
 
@@ -33,6 +34,7 @@ export default function VoiceRecorder({ onTranscribed, onError, onProcessingChan
           const blob = new Blob(chunksRef.current, { type: mediaRef.current?.mimeType || "audio/webm" });
           const fd = new FormData();
           fd.append("file", blob, "voice.webm");
+          fd.append("locale", locale); // Send user's language preference
 
           const token = localStorage.getItem("token");
 
